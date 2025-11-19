@@ -80,16 +80,23 @@ Want the `git-ok` command available everywhere? Jump down to [Installation](#ins
 
 ## Installation
 
-Once installed via `pip install .` (or `pip install --user .`), the `git-ok` command becomes available everywhere on your PATH:
+### From PyPI (recommended)
+
+Install the published package to add `git-ok` to your PATH:
 
 ```bash
-git-ok --help
-git-ok /some/project --show-ignored
+pip install git-ok
+# or, for isolation
+pipx install git-ok
 ```
 
-Prefer isolation? Use `pipx`:
+### From the cloned repository
+
+If you are hacking on the project locally, install the current checkout:
 
 ```bash
+pip install .
+# or
 pipx install --force .
 ```
 
