@@ -5,6 +5,8 @@ git-ok - A tool to check what's not backed up in your Git repository.
 Ensure everything important is committed, pushed, or identified before removing local repos.
 """
 
+__version__ = "0.1.0"
+
 import os
 import sys
 import argparse
