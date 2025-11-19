@@ -1,4 +1,4 @@
-# Key Design Decisions
+# Basic Design Decisions
 
 ## 1. Single Repository Focus (for now)
 **Decision**: Default command checks one repository path at a time, but the codebase stays open to future batch tooling.
