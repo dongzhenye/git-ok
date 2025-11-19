@@ -90,6 +90,16 @@ pip install git-ok
 pipx install git-ok
 ```
 
+`pip` 会使用你当前调用的 `python3` 对应的用户安装目录。macOS 常见的路径是 `~/Library/Python/<版本>/bin`（例如 3.9 或 3.12）。如果安装后找不到命令，运行 `python3 -m site --user-base`，在输出路径后加 `/bin` 并写入 `~/.zshrc`：
+
+```bash
+echo 'export PATH="$(python3 -m site --user-base)/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+which git-ok
+```
+
+如果你更习惯 Homebrew 的 Python，可以显式调用 `/opt/homebrew/bin/python3 -m pip install git-ok`，脚本会进入对应版本的用户目录。
+
 ### From the cloned repository
 
 If you are hacking on the project locally, install the current checkout:
