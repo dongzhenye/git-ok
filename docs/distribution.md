@@ -25,3 +25,15 @@ We layer the delivery channels to balance reach and maintenance effort:
 - **OS package managers (Deferred)** – apt, yum, Scoop, winget, etc. provide native experiences, yet every ecosystem needs its own packaging pipeline and approval. These stay on hold until we see strong platform-specific demand.
 
 This staged plan keeps low-effort channels (pip/pipx) as the canonical path, adds Brew for developers who prefer it, and postpones high-maintenance options until user demand justifies the investment.
+
+## Release Workflow
+
+1. **Version & changelog** – bump `__version__` in `git_ok.py`, update docs/CHANGELOG (when added), and ensure README reflects new features.
+2. **Tests & packaging** – run the CLI against a few repos and verify `python -m build` succeeds locally.
+3. **Merge to `main`** – open a PR, get review, and ensure `.github/workflows/publish.yml` stays untouched except for intentional changes.
+4. **Tag & GitHub Release** – create a tag like `v0.1.0` and publish a GitHub Release. This triggers the “Publish to PyPI” workflow.
+5. **Approve deployment** – when the workflow pauses on the `pypi-release` environment, approve it (unless auto-approved). The trusted publisher (OIDC) upload replaces manual API tokens.
+6. **Verify public install** – in a clean virtualenv run `pip install --upgrade git-ok` and smoke-test (`git-ok --help`, run against a repo).
+7. **Communicate** – close the relevant GitHub issues/milestones and announce the release if needed.
+
+For the very first publish, PyPI auto-creates the `git-ok` project when the workflow uploads. Future releases follow the same steps without any extra configuration.
