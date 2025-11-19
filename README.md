@@ -41,6 +41,17 @@ This tool provides a comprehensive check for all these concerns in one simple co
    - Ignores `node_modules/` and build directories
    - Focuses on actual config files, not source code
 
+### Design Principles
+
+- **Check non-Git directories too**: The riskiest projects have no version control at all, so we treat that as the highest severity.
+- **Be explicit**: Surface every class of risk (uncommitted work, ignored secrets, unsynced commits) so nothing is hidden.
+- **Stay read-only**: The tool never mutates your repo; it only reports, so you stay in control.
+- **Keep it simple**: No config files or setup hoops—clone once, or install the packaged CLI, and you're good to go.
+
+### Why the name?
+
+“git-ok” answers the exact question users ask before deleting a project: “Is this repo OK to remove?” The name stuck because it’s short, memorable, and mirrors the command’s yes/no verdict.
+
 ## Features
 
 - **Non-Git Directory Detection**: Warns when directories have NO version control at all (most critical!)
@@ -64,6 +75,34 @@ python3 git_ok.py /path/to/repo
 chmod +x git_ok.py
 ./git_ok.py /path/to/repo
 ```
+
+Want the `git-ok` command available everywhere? Jump down to [Installation](#installation).
+
+## Installation
+
+### From PyPI (recommended)
+
+Install the published package to add `git-ok` to your PATH:
+
+```bash
+pip install git-ok
+# or, for isolation
+pipx install git-ok
+```
+
+### From the cloned repository
+
+If you are hacking on the project locally, install the current checkout:
+
+```bash
+pip install .
+# or
+pipx install --force .
+```
+
+Both methods install the same console script entry point; rerun the same command with `--force`/`--upgrade` after pulling new changes to refresh the binary.
+
+> Curious about broader distribution plans (Homebrew, curl installers, packages, etc.)? See `docs/distribution.md` for the maintainer-focused roadmap and reasoning.
 
 ## Usage
 
