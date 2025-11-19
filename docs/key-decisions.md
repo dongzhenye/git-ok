@@ -1,21 +1,21 @@
 # Key Design Decisions
 
-## 1. Single Repository Focus
-**Decision**: Check one repository at a time, no batch operations
+## 1. Single Repository Focus (for now)
+**Decision**: Default command checks one repository path at a time, but the codebase stays open to future batch tooling.
 
 **Rationale**:
-- Each repository requires careful individual review
-- Batch operations could lead to accidental data loss
-- Keeps the tool simple and predictable
-- Users can easily script batch operations if needed: `find . -name .git -type d | xargs -I {} git-ok {}/..`
+- Current UX emphasizes careful review of each repo before deletion.
+- Batch modes risk hiding important warnings, so we defer them until we can design a safe summary view.
+- Users who really need batch behavior today can still script around `git-ok` (e.g. `fd -H '.git' | xargs -I {} git-ok {}/..`).
+- Feedback indicates bulk scanning would be useful, so we keep the architecture simple enough to add it later.
 
-## 2. Direct Script Execution
-**Decision**: No installation required, just run the Python script
+## 2. Packaged CLI Distribution
+**Decision**: Ship an installable console script (`pip install git-ok`, `pipx install git-ok`) instead of relying solely on manual script execution.
 
 **Rationale**:
-- Zero friction to start using
-- No dependency conflicts
-- Easy to audit (single file)
+- Users now expect to call `git-ok` globally like other CLIs (`git`, `gh`, etc.).
+- Packaging via `pyproject.toml` keeps dependency metadata explicit and reduces “copy this script” friction.
+- `pipx`/`pip` installs still keep the code auditable (single module) while improving discoverability.
 
 ## 3. Non-Git Directory Support
 **Decision**: Full support with highest severity warnings
@@ -60,12 +60,3 @@ git-ok || handle_issues $?
 - Works the same everywhere
 - No hidden surprises
 - Learned patterns work well for 90% of cases
-
-## 8. Emoji Usage
-**Decision**: Use emojis for visual clarity in terminal output
-
-**Rationale**:
-- Quick visual scanning of issues
-- Works in modern terminals
-- Falls back gracefully in older terminals
-- Disabled in JSON output
