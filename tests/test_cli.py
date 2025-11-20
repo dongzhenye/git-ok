@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import tempfile
@@ -72,6 +73,51 @@ class GitOkCLITest(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertIn("Summary: needs attention", result.stdout)
             self.assertIn("Working tree: changes detected", result.stdout)
+
+    def test_unpushed_commits_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = create_synced_repo(tmp)
+            extra = repo / "notes.txt"
+            extra.write_text("local change\n")
+            run(["git", "add", "notes.txt"], cwd=repo)
+            run(["git", "commit", "-q", "-m", "local work"], cwd=repo)
+            result = run_cli(repo)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("commits ahead of remote", result.stdout)
+
+    def test_json_output_for_clean_repo(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = create_synced_repo(tmp)
+            result = run_cli(repo, "--json")
+            self.assertEqual(result.returncode, 0)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["is_clean"])
+            self.assertIn("in sync", payload["sync_status"])
+
+    def test_important_ignored_files_detected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = create_synced_repo(tmp)
+            gitignore = repo / ".gitignore"
+            gitignore.write_text(".env\n")
+            run(["git", "add", ".gitignore"], cwd=repo)
+            run(["git", "commit", "-q", "-m", "ignore env"], cwd=repo)
+            run(["git", "push", "-q", "origin", "main"], cwd=repo)
+            env_file = repo / ".env"
+            env_file.write_text("SECRET=1\n")
+            result = run_cli(repo, "--json")
+            self.assertEqual(result.returncode, 0)
+            payload = json.loads(result.stdout)
+            self.assertIn(".env", payload.get("important_ignored_files", []))
+
+    def test_stash_detection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = create_synced_repo(tmp)
+            readme = repo / "README.md"
+            readme.write_text("stash me\n")
+            run(["git", "stash", "-q"], cwd=repo)
+            result = run_cli(repo)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("Stash: 1 stashed changes", result.stdout)
 
 
 if __name__ == "__main__":
