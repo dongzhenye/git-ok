@@ -9,13 +9,17 @@ __version__ = "0.1.0"
 
 import os
 import sys
+import time
 import argparse
 import subprocess
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 
 class GitSyncChecker:
+    MAX_NON_GIT_SCAN_FILES = 50000
+    MAX_NON_GIT_SCAN_SECONDS = 5.0
+
     def __init__(self, repo_path: str):
         self.repo_path = Path(repo_path).expanduser().resolve()
         if not self.repo_path.exists():
@@ -26,20 +30,55 @@ class GitSyncChecker:
         """Check if the directory is a git repository."""
         return (self.repo_path / ".git").exists()
     
-    def get_directory_stats(self) -> Tuple[int, int]:
-        """Get file count and total size for non-git directory."""
+    def get_directory_stats(self) -> Tuple[int, int, dict]:
+        """Get file count and total size for non-git directory in a safe, bounded way."""
         file_count = 0
         total_size = 0
-        
-        for path in self.repo_path.rglob('*'):
-            if path.is_file():
+        skipped_entries = 0
+        truncated = False
+        start_time = time.monotonic()
+        max_files = self.MAX_NON_GIT_SCAN_FILES
+        max_seconds = self.MAX_NON_GIT_SCAN_SECONDS
+
+        def should_stop() -> bool:
+            if max_files and file_count >= max_files:
+                return True
+            if max_seconds and (time.monotonic() - start_time) >= max_seconds:
+                return True
+            return False
+
+        def handle_error(error: OSError):
+            nonlocal skipped_entries
+            skipped_entries += 1
+
+        for root, _, files in os.walk(
+            self.repo_path, topdown=True, onerror=handle_error, followlinks=False
+        ):
+            if should_stop():
+                truncated = True
+                break
+
+            root_path = Path(root)
+            for name in files:
                 file_count += 1
                 try:
-                    total_size += path.stat().st_size
-                except:
-                    pass
-        
-        return file_count, total_size
+                    total_size += (root_path / name).stat().st_size
+                except OSError:
+                    skipped_entries += 1
+                if should_stop():
+                    truncated = True
+                    break
+
+            if truncated:
+                break
+
+        duration = time.monotonic() - start_time
+
+        return file_count, total_size, {
+            "skipped_entries": skipped_entries,
+            "truncated": truncated,
+            "duration_seconds": duration,
+        }
     
     def format_size(self, size_bytes: int) -> str:
         """Format bytes to human readable size."""
@@ -197,10 +236,15 @@ class GitSyncChecker:
         if not self.is_git:
             results["is_clean"] = False
             results["issues"].append("Not a Git repository")
-            file_count, total_size = self.get_directory_stats()
+            file_count, total_size, stats_meta = self.get_directory_stats()
             results["file_count"] = file_count
             results["total_size"] = total_size
             results["total_size_human"] = self.format_size(total_size)
+            results["scan_duration_seconds"] = round(stats_meta.get("duration_seconds", 0), 2)
+            if stats_meta.get("skipped_entries"):
+                results["scan_skipped_entries"] = stats_meta["skipped_entries"]
+            if stats_meta.get("truncated"):
+                results["scan_truncated"] = True
             return results
         
         # 1. Check working directory state
