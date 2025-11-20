@@ -157,9 +157,9 @@ class GitSyncChecker:
                 commit_count = 0
             
             if commit_count > 0:
-                return False, f"⚠️  No remote repository configured! ({commit_count} local commits will be lost)"
+                return False, f"No remote repository configured ({commit_count} local commits will be lost)"
             else:
-                return False, "⚠️  Empty repository with no remote configured"
+                return False, "Empty repository with no remote configured"
         
         # 2. Fetch latest remote info (dry-run to not modify local)
         self.run_git_command(["fetch", "--dry-run"])
@@ -169,7 +169,7 @@ class GitSyncChecker:
         branch = branch.strip()
         
         if not branch or branch == "HEAD":
-            return False, "⚠️  Not on any branch (detached HEAD state)"
+            return False, "Not on any branch (detached HEAD state)"
         
         # 4. Check if branch has upstream
         code, upstream, _ = self.run_git_command(["rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}"])
@@ -177,14 +177,14 @@ class GitSyncChecker:
             # No upstream - check if branch exists on remote
             code, remote_branches, _ = self.run_git_command(["branch", "-r"])
             if any(f"/{branch}" in line for line in remote_branches.splitlines()):
-                return False, f"⚠️  Branch '{branch}' exists on remote but upstream is not set\n   Fix: git branch --set-upstream-to=origin/{branch}"
+                return False, f"Branch '{branch}' exists on remote but upstream is not set\n   Fix: git branch --set-upstream-to=origin/{branch}"
             else:
                 # Check if this is the only branch
                 code, local_branches, _ = self.run_git_command(["branch"])
                 if len(local_branches.strip().splitlines()) == 1:
-                    return False, f"⚠️  Branch '{branch}' not pushed to remote yet"
+                    return False, f"Branch '{branch}' not pushed to remote yet"
                 else:
-                    return False, f"⚠️  Branch '{branch}' has no remote tracking branch"
+                    return False, f"Branch '{branch}' has no remote tracking branch"
         
         # 5. Compare local and remote
         upstream = upstream.strip()  # Remove any whitespace
@@ -192,23 +192,23 @@ class GitSyncChecker:
         code2, behind, _ = self.run_git_command(["rev-list", "--count", f"{branch}..{upstream}"])
         
         if code != 0 or code2 != 0:
-            return False, "⚠️  Could not compare with remote branch"
+            return False, "Could not compare with remote branch"
         
         try:
             ahead = int(ahead.strip()) if ahead.strip() else 0
             behind = int(behind.strip()) if behind.strip() else 0
         except ValueError:
-            return False, "⚠️  Could not compare with remote branch"
+            return False, "Could not compare with remote branch"
         
         # 6. Determine sync status
         if ahead == 0 and behind == 0:
-            return True, "✅ Local branch is in sync with remote"
+            return True, "Local branch is in sync with remote"
         elif ahead > 0 and behind > 0:
-            return False, f"⚠️  Diverged: {ahead} commits ahead, {behind} commits behind remote"
+            return False, f"Diverged: {ahead} commits ahead, {behind} commits behind remote"
         elif ahead > 0:
-            return False, f"⚠️  Local branch is {ahead} commits ahead of remote (need to push)"
+            return False, f"Local branch is {ahead} commits ahead of remote (need to push)"
         else:  # behind > 0
-            return False, f"⚠️  Local branch is {behind} commits behind remote (need to pull)"
+            return False, f"Local branch is {behind} commits behind remote (need to pull)"
     
     def list_ignored_files(self) -> List[str]:
         """List all files ignored by .gitignore."""
@@ -353,94 +353,75 @@ def main():
             import json
             print(json.dumps(results, indent=2))
         else:
-            # Pretty print results
             if not results.get("is_git", True):
-                # Special handling for non-git directories
-                print(f"\n📁 Directory: {results['repo_path']}")
+                print(f"\nDirectory: {results['repo_path']}")
                 print("=" * 60)
-                print("❌ NOT A GIT REPOSITORY!")
-                print(f"\n⚠️  This directory has no version control.")
-                print(f"   All {results['file_count']} files ({results['total_size_human']}) are NOT backed up!")
-                print(f"\n💡 To initialize Git: git init")
-                print("=" * 60)
-                print("\n⚠️  CRITICAL: This directory has no backup whatsoever!")
-                print("   Any file deletion or disk failure means permanent data loss.")
+                print("Summary: not under version control")
+                print(f"Files scanned: {results['file_count']} items ({results['total_size_human']}) outside Git.")
+                print("Action: initialize Git or copy the directory elsewhere before deleting it.")
                 if results.get("scan_truncated"):
-                    print("\n⏱️  Directory scan stopped early for responsiveness. Counts are approximate.")
+                    print("Note: directory scan stopped early; counts are approximate.")
                 if results.get("scan_skipped_entries"):
                     skipped = results['scan_skipped_entries']
-                    print(f"   ⚠️  Skipped {skipped} files/directories due to permission issues.")
-            else:
-                # Normal git repository output
-                print(f"\n📁 Repository: {results['repo_path']}")
+                    print(f"Note: skipped {skipped} entries due to permission errors.")
                 print("=" * 60)
-                
-                if results["is_clean"]:
-                    print("✅ Repository is clean and synced!")
-                else:
-                    print("⚠️  Issues found:")
-                    for issue in results["issues"]:
-                        print(f"   - {issue}")
-                
-                print(f"\n🔄 Sync Status:")
-                print(f"   {results['sync_status']}")
+                sys.exit(2)
             
+            print(f"\nRepository: {results['repo_path']}")
+            print("=" * 60)
+            summary = "clean" if results["is_clean"] else "needs attention"
+            print(f"Summary: {summary}")
+            print(f"Remote: {results['sync_status']}")
+            
+            working_tree_state = "clean"
             if "uncommitted_changes" in results:
-                print(f"\n📝 Uncommitted Changes:")
+                working_tree_state = "changes detected"
+            print(f"Working tree: {working_tree_state}")
+            if "uncommitted_changes" in results:
                 for line in results["uncommitted_changes"].splitlines():
-                    print(f"   {line}")
+                    print(f"  {line}")
             
-            if "stash_info" in results:
-                print(f"\n📦 Stash: {results['stash_info']}")
+            stash_info = results.get("stash_info")
+            print(f"Stash: {stash_info if stash_info else 'none'}")
             
             if "operation_in_progress" in results:
-                print(f"\n⚡ Operation: {results['operation_in_progress']}")
+                print(f"Operation: {results['operation_in_progress']}")
             
-            if results.get("is_git", True):
-                print(f"\n🚫 Ignored Files: {results['ignored_count']} files")
-                
-                # Show important ignored files if found
-                if "important_ignored_files" in results and results["important_ignored_files"]:
-                    print(f"   ⚠️  Found {results['important_ignored_count']} important config/secret files")
+            ignored_total = results.get("ignored_count", 0)
+            print(f"Ignored files: {ignored_total}")
+            important = results.get("important_ignored_files", [])
+            if important:
+                print(f"  Important ignored files: {results['important_ignored_count']}")
             
-            if args.important_only and "important_ignored_files" in results:
-                print("   Important files that would be lost:")
-                for file in results["important_ignored_files"]:
-                    print(f"   ⚠️  - {file}")
+            if args.important_only and important:
+                print("Important ignored files:")
+                for file in important:
+                    print(f"  - {file}")
             elif args.show_ignored and results["ignored_files"]:
-                print("   Files ignored by .gitignore:")
-                
-                # Show important files first if any
-                if "important_ignored_files" in results:
-                    print("   ⚠️  Important config/secret files:")
-                    for file in results["important_ignored_files"][:10]:
-                        print(f"      - {file}")
-                    if len(results["important_ignored_files"]) > 10:
-                        print(f"      ... and {len(results['important_ignored_files']) - 10} more important files")
-                    print()
-                
-                # Show other files
-                other_files = [f for f in results["ignored_files"] if f not in results.get("important_ignored_files", [])]
+                print("Ignored file list:")
+                if important:
+                    print("  Priority files:")
+                    for file in important[:10]:
+                        print(f"    - {file}")
+                    if len(important) > 10:
+                        remaining = len(important) - 10
+                        print(f"    ... {remaining} more")
+                other_files = [f for f in results["ignored_files"] if f not in important]
                 if other_files:
-                    print("   📄 Other ignored files:")
+                    print("  Other files:")
                     for file in other_files[:20]:
-                        print(f"      - {file}")
+                        print(f"    - {file}")
                     if len(other_files) > 20:
-                        print(f"      ... and {len(other_files) - 20} more")
+                        remaining = len(other_files) - 20
+                        print(f"    ... {remaining} more")
             
-            print("\n" + "=" * 60)
+            print("=" * 60)
             
-            # Safety reminder
             if not results["is_clean"]:
-                if not results.get("is_git", True):
-                    sys.exit(2)  # Special exit code for non-git directories
-                else:
-                    print("⚠️  WARNING: This repository has unsynced changes!")
-                    print("   Review the above before deleting this repository.")
-                    sys.exit(1)
+                sys.exit(1)
             
     except Exception as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
