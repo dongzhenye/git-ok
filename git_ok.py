@@ -365,6 +365,11 @@ def main():
                 print("=" * 60)
                 print("\n⚠️  CRITICAL: This directory has no backup whatsoever!")
                 print("   Any file deletion or disk failure means permanent data loss.")
+                if results.get("scan_truncated"):
+                    print("\n⏱️  Directory scan stopped early for responsiveness. Counts are approximate.")
+                if results.get("scan_skipped_entries"):
+                    skipped = results['scan_skipped_entries']
+                    print(f"   ⚠️  Skipped {skipped} files/directories due to permission issues.")
             else:
                 # Normal git repository output
                 print(f"\n📁 Repository: {results['repo_path']}")
