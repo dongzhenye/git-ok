@@ -80,14 +80,20 @@ Want the `git-ok` command available everywhere? Jump down to [Installation](#ins
 
 ## Installation
 
-### From PyPI (recommended)
+### From PyPI (recommended: pipx)
 
-Install the published package to add `git-ok` to your PATH:
+Install via `pipx` for isolation and automatic PATH wiring:
 
 ```bash
-pip install git-ok
-# or, for isolation
 pipx install git-ok
+```
+
+`pipx` keeps dependencies in a managed venv and symlinks the `git-ok` command into your user bin directory (常见为 `~/.local/bin` 或 macOS `~/Library/Python/<版本>/bin`)，无需担心与系统/项目依赖冲突。
+
+Prefer not to use `pipx`? A user-level `pip` install works too:
+
+```bash
+pip install --user git-ok
 ```
 
 `pip` 会使用你当前调用的 `python3` 对应的用户安装目录。macOS 常见的路径是 `~/Library/Python/<版本>/bin`（例如 3.9 或 3.12）。如果安装后找不到命令，运行 `python3 -m site --user-base`，在输出路径后加 `/bin` 并写入 `~/.zshrc`：

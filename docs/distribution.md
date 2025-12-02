@@ -6,8 +6,8 @@ _This document is aimed at maintainers/product planners who want the reasoning b
 
 | 安装场景 | 命令 | 说明 |
 | --- | --- | --- |
-| 全局 CLI（推荐） | `pip install git-ok` | 使用当前 `python3` 的 `--user` 目录安装。若命令找不到，执行 `python3 -m site --user-base` 并把输出路径的 `/bin` 加入 `PATH`。 |
-| 隔离安装 | `pipx install git-ok` | 自动创建虚拟环境并将脚本链接到 `~/.local/bin`，无需手动处理 PATH。 |
+| 隔离安装（推荐） | `pipx install git-ok` | 自动创建虚拟环境并将脚本链接到 `~/.local/bin`（或 macOS `~/Library/Python/<版本>/bin`），无需手动处理 PATH。 |
+| 用户级安装 | `pip install --user git-ok` | 使用当前 `python3` 的用户目录安装。若命令找不到，执行 `python3 -m site --user-base` 并把输出路径的 `/bin` 加入 `PATH`。 |
 | 本地开发 | `python3 -m venv .venv && source .venv/bin/activate && pip install -e .` | 贡献者在仓库里工作时使用，保持依赖隔离。 |
 
 无论哪种方式，安装后都能在 shell 中直接运行 `git-ok --help`。更新时使用相同指令加 `--upgrade`。
@@ -16,13 +16,14 @@ _This document is aimed at maintainers/product planners who want the reasoning b
 
 We layer the delivery channels to balance reach and maintenance effort:
 
-- **pip / pipx (Primary)** – default recommendation; works anywhere Python ≥3.8 is available and keeps upgrades simple (`pip install --upgrade git-ok`). `pipx` is ideal when users want isolation from system site-packages.
+- **pipx (Primary)** – default end-user recommendation; works anywhere Python ≥3.8 is available, keeps dependencies isolated, and puts the console script on PATH automatically.
+- **pip --user (Secondary, fallback)** – for environments without `pipx`, still low-friction and cross-platform; requires PATH check (`python3 -m site --user-base` + `/bin`).
 - **Homebrew Tap (Secondary)** – planned once releases stabilize (`brew install dongzhenye/git-ok/git-ok`). Requires maintaining a formula and checksum bumps but offers the familiar `brew upgrade git-ok` flow for macOS/Linux developers.
 - **curl installer (Tertiary)** – optional convenience script (`curl -fsSL ... | bash`) that would likely call `pipx` under the hood. We will only publish this with automated checksum/signature verification and clear documentation to avoid security surprises.
 - **Self-contained binaries (Deferred)** – bundling via `shiv`, `pex`, or `pyinstaller` helps users without a modern Python runtime, but adds CI/build complexity. We will revisit when demand surfaces.
 - **OS package managers (Deferred)** – apt, yum, Scoop, winget, etc. provide native experiences, yet every ecosystem needs its own packaging pipeline and approval. These stay on hold until we see strong platform-specific demand.
 
-This staged plan keeps low-effort channels (pip/pipx) as the canonical path, adds Brew for developers who prefer it, and postpones high-maintenance options until user demand justifies the investment.
+This staged plan keeps low-effort channels (pipx/pip) as the canonical path, adds Brew for developers who prefer it, and postpones high-maintenance options until user demand justifies the investment.
 
 ## Release Workflow
 
