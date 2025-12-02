@@ -88,7 +88,7 @@ Install via `pipx` for isolation and automatic PATH wiring:
 pipx install git-ok
 ```
 
-`pipx` keeps dependencies in a managed venv and symlinks the `git-ok` command into your user bin directory (常见为 `~/.local/bin` 或 macOS `~/Library/Python/<版本>/bin`)，无需担心与系统/项目依赖冲突。
+`pipx` keeps dependencies in a managed venv and symlinks the `git-ok` command into your user bin directory (typically `~/.local/bin` on Linux or macOS `~/Library/Python/<version>/bin`), avoiding system/project dependency conflicts.
 
 Prefer not to use `pipx`? A user-level `pip` install works too:
 
@@ -96,7 +96,7 @@ Prefer not to use `pipx`? A user-level `pip` install works too:
 pip install --user git-ok
 ```
 
-`pip` 会使用你当前调用的 `python3` 对应的用户安装目录。macOS 常见的路径是 `~/Library/Python/<版本>/bin`（例如 3.9 或 3.12）。如果安装后找不到命令，运行 `python3 -m site --user-base`，在输出路径后加 `/bin` 并写入 `~/.zshrc`：
+`pip` installs into the user site directory of the `python3` you invoked. On macOS, common paths look like `~/Library/Python/<version>/bin` (e.g., 3.9 or 3.12). If the command is not found after installation, run `python3 -m site --user-base`, append `/bin` from that path into your shell config, and reload:
 
 ```bash
 echo 'export PATH="$(python3 -m site --user-base)/bin:$PATH"' >> ~/.zshrc
@@ -104,7 +104,7 @@ source ~/.zshrc
 which git-ok
 ```
 
-如果你更习惯 Homebrew 的 Python，可以显式调用 `/opt/homebrew/bin/python3 -m pip install git-ok`，脚本会进入对应版本的用户目录。
+If you prefer Homebrew’s Python, call `/opt/homebrew/bin/python3 -m pip install git-ok` explicitly so the script is placed in that Python’s user directory.
 
 ### From the cloned repository
 
@@ -190,6 +190,13 @@ Always review the output carefully before deleting any repository!
 - Python 3.6+
 - Git command-line tool
 - Unix-like environment (Linux, macOS, WSL)
+
+## Project Status & Roadmap
+
+- Current implementation: Python single-file CLI published on PyPI (`pipx/pip` install).
+- Planned direction: migrate to a zero-runtime Go static binary with Homebrew distribution; see `docs/architecture-plan.md` for the phased plan.
+- Language/architecture trade-offs: see `docs/language-choice.md`.
+- Reference implementation patterns: see `docs/reference-gitleaks.md` for lessons from a similar Go-based Git scanner.
 
 ## Contributing
 
